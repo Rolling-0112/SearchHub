@@ -54,9 +54,9 @@ export const search = (query, platformIds) => {
             let targetUrl = platform.url.replace('{query}', encodeURIComponent(query));
             
             // Mobile Optimization: Xiaohongshu mobile web is often broken/blocked
-            // Fallback to Google Site Search for 100% reliability on mobile
+            // Fallback to Baidu Site Search for accessibility in China without VPN
             if (id === 'xiaohongshu' && isMobile) {
-                targetUrl = `https://www.google.com/search?q=site:xiaohongshu.com+${encodeURIComponent(query)}`;
+                targetUrl = `https://www.baidu.com/s?wd=site:xiaohongshu.com+${encodeURIComponent(query)}`;
             }
 
             window.open(targetUrl, '_blank');
