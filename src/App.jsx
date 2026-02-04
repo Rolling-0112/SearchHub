@@ -15,13 +15,28 @@ function App() {
   // Theme Init Logic
   React.useEffect(() => {
     const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'light') setIsDarkMode(false);
+    const isDark = savedTheme !== 'light';
+    setIsDarkMode(isDark);
+    
+    // Apply to Body
+    if (!isDark) {
+      document.body.classList.add('light-mode');
+    } else {
+      document.body.classList.remove('light-mode');
+    }
   }, []);
 
   const toggleTheme = () => {
     const newMode = !isDarkMode;
     setIsDarkMode(newMode);
     localStorage.setItem('theme', newMode ? 'dark' : 'light');
+    
+    // Apply to Body
+    if (!newMode) {
+      document.body.classList.add('light-mode');
+    } else {
+      document.body.classList.remove('light-mode');
+    }
   };
 
   /* Firebase Sync Logic */
