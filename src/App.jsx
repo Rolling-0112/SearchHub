@@ -1,77 +1,87 @@
-import React, { useState, useEffect } from 'react'
-import SearchBar from './components/SearchBar'
-import PlatformSelector from './components/PlatformSelector'
-import { platforms, search } from './utils/searchRoutes'
-import { db } from './firebase'
-import { doc, setDoc, getDoc } from 'firebase/firestore'
-import './App.css'
+import React, { useState } from 'react';
+import PlatformSelector from './components/PlatformSelector';
+import SearchBar from './components/SearchBar';
+import { search, platforms } from './utils/searchRoutes';
+import { db } from './firebase';
+import { doc, getDoc, setDoc, updateDoc, arrayUnion } from 'firebase/firestore';
+import './App.css';
+
+const USER_ID = 'demo-user-001';
 
 function App() {
-  const [query, setQuery] = useState('')
-  const [selectedPlatforms, setSelectedPlatforms] = useState([])
-  const [userId, setUserId] = useState(localStorage.getItem('searchhub_uid'))
+  const [selectedPlatforms, setSelectedPlatforms] = useState(['xiaohongshu']);
 
-  useEffect(() => {
-    // Popup Blocker Detection
-    // This part logic is usually triggered by user action, so we keep the alert function ready
+  /* Firebase Sync Logic */
+  React.useEffect(() => {
+    const syncData = async () => {
+      try {
+        const docRef = doc(db, "users", USER_ID);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          if (data.preferences) setSelectedPlatforms(data.preferences);
+        }
+      } catch (e) {
+        console.log("Firebase not connected yet (Config missing)");
+      }
+    };
+    syncData();
   }, []);
 
-  useEffect(() => {
-    if (!userId) {
-      const newId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-      setUserId(newId);
-      localStorage.setItem('searchhub_uid', newId);
-    } else {
-      // Load preferences
-      const loadPrefs = async () => {
-        try {
-          const docRef = doc(db, "users", userId);
-          const docSnap = await getDoc(docRef);
-          if (docSnap.exists()) {
-            const data = docSnap.data();
-            if (data.selectedPlatforms) setSelectedPlatforms(data.selectedPlatforms);
-          }
-        } catch (e) {
-          console.error("Error loading prefs:", e);
-        }
-      };
-      loadPrefs();
-    }
-  }, [userId]);
-
   const togglePlatform = (id) => {
-    const newSelection = selectedPlatforms.includes(id)
-      ? selectedPlatforms.filter(pid => pid !== id)
-      : [...selectedPlatforms, id];
-    
-    setSelectedPlatforms(newSelection);
-    
-    // Save to Firebase
-    if (userId) {
-      setDoc(doc(db, "users", userId), { 
-        selectedPlatforms: newSelection,
-        lastActive: new Date()
-      }, { merge: true });
+    let newPlatforms;
+    if (selectedPlatforms.includes(id)) {
+      newPlatforms = selectedPlatforms.filter(p => p !== id);
+    } else {
+      newPlatforms = [...selectedPlatforms, id];
     }
-  }
+    setSelectedPlatforms(newPlatforms);
 
-  const handleSearch = () => {
-    if (!query) return;
-    
-    // Save history
-    if (userId) {
-        setDoc(doc(db, "users", userId), {
-            searchHistory: {[Date.now()]: query}
-        }, { merge: true });
+    // Save to Cloud
+    try {
+      setDoc(doc(db, "users", USER_ID), { preferences: newPlatforms }, { merge: true });
+    } catch (e) { /* Ignore if config missing */ }
+  };
+
+  const onSearch = (query) => {
+    if (selectedPlatforms.length === 0) {
+      alert('请至少选择一个平台 😅');
+      return;
     }
 
     let blockedCount = 0;
-    
+
+    // Save History to Cloud
+    try {
+      setDoc(doc(db, "users", USER_ID), {
+        history: arrayUnion(query),
+        last_updated: new Date()
+      }, { merge: true });
+    } catch (e) { /* Ignore */ }
+
     // Execute Search with Popup Detection
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.innerWidth <= 768;
+
     selectedPlatforms.forEach(id => {
       const platform = platforms.find(p => p.id === id);
       if (platform) {
-        const targetUrl = platform.url.replace('{query}', encodeURIComponent(query));
+        let targetUrl = platform.url.replace('{query}', encodeURIComponent(query));
+
+        // BUG FIX: Apply Mobile Fallback Logic HERE
+        if (isMobile) {
+          // Xiaohongshu Deep Link
+          if (id === 'xiaohongshu') {
+            window.location.href = `xhsdiscover://search/result?keyword=${encodeURIComponent(query)}`;
+            return;
+          }
+          // Bilibili Deep Link
+          if (id === 'bilibili') {
+            window.location.href = `bilibili://search?keyword=${encodeURIComponent(query)}`;
+            return;
+          }
+        }
+
+        // First one usually succeeds (initiated by user action), others might be blocked
         const newWin = window.open(targetUrl, '_blank');
         if (!newWin || newWin.closed || typeof newWin.closed == 'undefined') {
           blockedCount++;
@@ -91,30 +101,25 @@ function App() {
         <div className="blob blob-2"></div>
         <div className="blob blob-3"></div>
       </div>
-      
+
       <div className="glass-card">
         <h1 className="title">SearchHub</h1>
         <p className="subtitle">全网聚合 · 一键直达</p>
-        
-        <SearchBar 
-          value={query} 
-          onChange={setQuery} 
-          onSearch={handleSearch} 
-        />
-        
-        <PlatformSelector 
-          selected={selectedPlatforms} 
-          toggle={togglePlatform} 
-        />
-        
-        <div className="hint">
-          {selectedPlatforms.length > 0 
-            ? `已选择 ${selectedPlatforms.length} 个平台，将为您打开 ${selectedPlatforms.length} 个标签页`
-            : '请选择至少一个平台开始搜索'}
+
+        <SearchBar onSearch={onSearch} />
+
+        <div className="selector-wrapper">
+          <PlatformSelector selected={selectedPlatforms} toggle={togglePlatform} />
         </div>
+
+        <p className="hint">
+          {selectedPlatforms.length > 0
+            ? `已选择 ${selectedPlatforms.length} 个平台，将为您打开 ${selectedPlatforms.length} 个标签页`
+            : '请选择平台以开始搜索'}
+        </p>
       </div>
     </div>
-  )
+  );
 }
 
-export default App
+export default App;
