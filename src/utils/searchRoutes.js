@@ -46,10 +46,19 @@ export const platforms = [
 export const search = (query, platformIds) => {
     if (!query || !platformIds || platformIds.length === 0) return;
 
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
     platformIds.forEach(id => {
         const platform = platforms.find(p => p.id === id);
         if (platform) {
-            const targetUrl = platform.url.replace('{query}', encodeURIComponent(query));
+            let targetUrl = platform.url.replace('{query}', encodeURIComponent(query));
+            
+            // Mobile Optimization: Xiaohongshu mobile web is often broken/blocked
+            // Fallback to Google Site Search for 100% reliability on mobile
+            if (id === 'xiaohongshu' && isMobile) {
+                targetUrl = `https://www.google.com/search?q=site:xiaohongshu.com+${encodeURIComponent(query)}`;
+            }
+
             window.open(targetUrl, '_blank');
         }
     });
