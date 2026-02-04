@@ -3,7 +3,7 @@ export const platforms = [
         id: 'xiaohongshu',
         name: '小红书',
         icon: '📕',
-        url: 'https://www.xiaohongshu.com/search_result?keyword={query}&source=web_search_result_notes',
+        url: 'https://www.xiaohongshu.com/search_result?keyword={query}',
         color: '#ff2442'
     },
     {
