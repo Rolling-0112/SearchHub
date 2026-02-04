@@ -1,0 +1,1 @@
+{"name":"SearchHub 聚合搜索","short_name":"SearchHub","description":"全网聚合 · 一键直达","start_url":"/SearchHub/","display":"standalone","background_color":"#1a1a2e","theme_color":"#1a1a2e","lang":"en","scope":"/SearchHub/","icons":[{"src":"pwa-192x192.png","sizes":"192x192","type":"image/png"},{"src":"pwa-512x512.png","sizes":"512x512","type":"image/png"}]}
