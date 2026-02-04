@@ -46,7 +46,9 @@ export const platforms = [
 export const search = (query, platformIds) => {
     if (!query || !platformIds || platformIds.length === 0) return;
 
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    // Mobile detection: User Agent OR Screen Width (more robust)
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.innerWidth <= 768;
+    console.log('SearchHub Debug: isMobile =', isMobile, 'Version: v3-BaiduFix');
 
     platformIds.forEach(id => {
         const platform = platforms.find(p => p.id === id);
