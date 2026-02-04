@@ -10,6 +10,19 @@ const USER_ID = 'demo-user-001';
 
 function App() {
   const [selectedPlatforms, setSelectedPlatforms] = useState(['xiaohongshu']);
+  const [isDarkMode, setIsDarkMode] = useState(true);
+
+  // Theme Init Logic
+  React.useEffect(() => {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'light') setIsDarkMode(false);
+  }, []);
+
+  const toggleTheme = () => {
+    const newMode = !isDarkMode;
+    setIsDarkMode(newMode);
+    localStorage.setItem('theme', newMode ? 'dark' : 'light');
+  };
 
   /* Firebase Sync Logic */
   React.useEffect(() => {
@@ -95,7 +108,11 @@ function App() {
   };
 
   return (
-    <div className="app-container">
+    <div className={`app-container ${isDarkMode ? '' : 'light-mode'}`}>
+      <button className="theme-toggle" onClick={toggleTheme} title="切换主题">
+        {isDarkMode ? '🌙' : '☀️'}
+      </button>
+
       <div className="background-blobs">
         <div className="blob blob-1"></div>
         <div className="blob blob-2"></div>
